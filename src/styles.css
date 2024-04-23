@@ -1,6 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
-@import "css/goldenlayout-base.css";
-@import "css/themes/goldenlayout-dark-theme.css";
+@import "../node_modules/golden-layout/dist/css/goldenlayout-base.css";
+@import "../node_modules/golden-layout/dist/css/themes/goldenlayout-dark-theme.css";
 
 html {
     width: 100%;

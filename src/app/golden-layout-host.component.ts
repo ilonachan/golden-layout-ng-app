@@ -1,14 +1,11 @@
-import { ApplicationRef, Component, ComponentRef, ElementRef, EmbeddedViewRef, OnDestroy, ViewChild, ViewContainerRef } from '@angular/core';
+import { AfterViewInit, ApplicationRef, Component, ComponentRef, ElementRef, EmbeddedViewRef, Injector, OnDestroy, ViewChild, ViewContainerRef, afterNextRender, inject } from '@angular/core';
 import {
   ComponentContainer, GoldenLayout,
   LogicalZIndex,
   ResolvedComponentItemConfig
 } from "golden-layout";
-import { BaseComponentDirective } from './base-component.directive';
-import { BooleanComponent } from './boolean.component';
-import { ColorComponent } from './color.component';
 import { GoldenLayoutComponentService } from './golden-layout-component.service';
-import { TextComponent } from './text.component';
+import { ReplaySubject } from 'rxjs';
 
 @Component({
   selector: 'app-golden-layout-host',
@@ -23,12 +20,14 @@ import { TextComponent } from './text.component';
     `,
   ],
 })
-export class GoldenLayoutHostComponent implements OnDestroy {
+export class GoldenLayoutHostComponent implements AfterViewInit, OnDestroy {
+  public initialised = new ReplaySubject<void>(1);
+
   private _goldenLayout: GoldenLayout;
   private _goldenLayoutElement: HTMLElement;
   private _virtualActive = true;
   private _viewContainerRefActive = false;
-  private _componentRefMap = new Map<ComponentContainer, ComponentRef<BaseComponentDirective>>();
+  private _componentRefMap = new Map<ComponentContainer, ComponentRef<Component>>();
   private _goldenLayoutBoundingClientRect: DOMRect = new DOMRect();
 
   private _goldenLayoutBindComponentEventListener =
@@ -46,12 +45,19 @@ export class GoldenLayoutHostComponent implements OnDestroy {
   constructor(private _appRef: ApplicationRef,
     private _elRef: ElementRef<HTMLElement>,
     private goldenLayoutComponentService: GoldenLayoutComponentService,
+    private injector: Injector,
   ) {
     this._goldenLayoutElement = this._elRef.nativeElement;
 
-    this.goldenLayoutComponentService.registerComponentType(ColorComponent.componentTypeName, ColorComponent);
-    this.goldenLayoutComponentService.registerComponentType(TextComponent.componentTypeName, TextComponent);
-    this.goldenLayoutComponentService.registerComponentType(BooleanComponent.componentTypeName, BooleanComponent);
+    afterNextRender(() => {
+      this.initialise();
+    })
+  }
+
+  ngAfterViewInit() {
+    // setTimeout(() => {
+    //   this.initialise();
+    // }, 0);
   }
 
   ngOnDestroy() {
@@ -70,6 +76,7 @@ export class GoldenLayoutHostComponent implements OnDestroy {
     if (this._goldenLayout.isSubWindow) {
       this._goldenLayout.checkAddDefaultPopinButton();
     }
+    this.initialised.next()
   }
 
   setVirtualActive(value: boolean) {
@@ -98,7 +105,7 @@ export class GoldenLayoutHostComponent implements OnDestroy {
 
   private handleBindComponentEvent(container: ComponentContainer, itemConfig: ResolvedComponentItemConfig): ComponentContainer.BindableComponent {
     const componentType = itemConfig.componentType;
-    const componentRef = this.goldenLayoutComponentService.createComponent(componentType, container);
+    const componentRef = this.goldenLayoutComponentService.createComponent(componentType, container, this.injector);
     const component = componentRef.instance;
 
     this._componentRefMap.set(container, componentRef);
@@ -108,11 +115,15 @@ export class GoldenLayoutHostComponent implements OnDestroy {
       container.virtualVisibilityChangeRequiredEvent = (container, visible) => this.handleContainerVisibilityChangeRequiredEvent(container, visible);
       container.virtualZIndexChangeRequiredEvent = (container, logicalZIndex, defaultZIndex) => this.handleContainerVirtualZIndexChangeRequiredEvent(container, logicalZIndex, defaultZIndex);
 
+      const componentRootElement = (<HTMLElement>componentRef.location.nativeElement);
+      componentRootElement.style.position = "absolute";
+      componentRootElement.style.overflow = "hidden";
+
       if (this._viewContainerRefActive) {
+        // TODO: this does actually insert the components, but BEFORE the tab layout, which means they'll be covered by it.
         this._componentViewContainerRef.insert(componentRef.hostView);
       } else {
         this._appRef.attachView(componentRef.hostView);
-        const componentRootElement = component.rootHtmlElement;
         this._goldenLayoutElement.appendChild(componentRootElement);
       }
     } else {
@@ -144,14 +155,12 @@ export class GoldenLayoutHostComponent implements OnDestroy {
         }
         this._componentViewContainerRef.remove(viewRefIndex);
       } else {
-        const component = componentRef.instance;
-        const componentRootElement = component.rootHtmlElement;
+        const componentRootElement = (<HTMLElement>componentRef.location.nativeElement);
         this._goldenLayoutElement.removeChild(componentRootElement);
         this._appRef.detachView(hostView);
       }
     } else {
-      const component = componentRef.instance;
-      const componentRootElement = component.rootHtmlElement;
+      const componentRootElement = (<HTMLElement>componentRef.location.nativeElement);
       container.element.removeChild(componentRootElement);
       this._appRef.detachView(hostView);
     }
@@ -172,8 +181,11 @@ export class GoldenLayoutHostComponent implements OnDestroy {
     if (componentRef === undefined) {
         throw new Error('handleContainerVirtualRectingRequiredEvent: ComponentRef not found');
     }
-    const component = componentRef.instance;
-    component.setPositionAndSize(left, top, width, height);
+    const element = (<HTMLElement>componentRef.location.nativeElement);
+    element.style.left = px(left);
+    element.style.top = px(top);
+    element.style.width = px(width);
+    element.style.height = px(height);
   }
 
   private handleContainerVisibilityChangeRequiredEvent(container: ComponentContainer, visible: boolean) {
@@ -181,8 +193,8 @@ export class GoldenLayoutHostComponent implements OnDestroy {
     if (componentRef === undefined) {
         throw new Error('handleContainerVisibilityChangeRequiredEvent: ComponentRef not found');
     }
-    const component = componentRef.instance;
-    component.setVisibility(visible);
+    const element = (<HTMLElement>componentRef.location.nativeElement);
+    element.style.display = visible ? '' : 'none';
   }
 
   private handleContainerVirtualZIndexChangeRequiredEvent(container: ComponentContainer, logicalZIndex: LogicalZIndex, defaultZIndex: string) {
@@ -190,7 +202,10 @@ export class GoldenLayoutHostComponent implements OnDestroy {
     if (componentRef === undefined) {
         throw new Error('handleContainerVirtualZIndexChangeRequiredEvent: ComponentRef not found');
     }
-    const component = componentRef.instance;
-    component.setZIndex(defaultZIndex);
+    const element = (<HTMLElement>componentRef.location.nativeElement);
+    element.style.zIndex = defaultZIndex;
   }
 }
+
+
+const px = (value: number) => `${value.toString(10)}px`;

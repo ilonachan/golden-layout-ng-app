@@ -1,14 +1,9 @@
 import { ComponentItemConfig, ItemType, LayoutConfig } from "golden-layout";
-import { BooleanComponent } from './boolean.component';
-import { ColorComponent } from './color.component';
-import { TextComponent } from './text.component';
+import { BooleanComponent } from './tabs/boolean.component';
+import { ColorComponent } from './tabs/color.component';
+import { TextComponent } from './tabs/text.component';
 
-export interface Layout {
-    name: string;
-    config: LayoutConfig;
-}
-
-const miniRowConfig: LayoutConfig = {
+const miniRow: LayoutConfig = {
     root: {
         type: ItemType.row,
         content: [
@@ -35,12 +30,7 @@ const miniRowConfig: LayoutConfig = {
     },
 };
 
-const miniRowLayout: Layout = {
-    name: 'miniRow',
-    config: miniRowConfig,
-};
-
-const miniStackConfig: LayoutConfig = {
+const miniStack: LayoutConfig = {
     root: {
         type: ItemType.stack,
         content: [
@@ -66,12 +56,7 @@ const miniStackConfig: LayoutConfig = {
     },
 };
 
-const miniStackLayout: Layout = {
-    name: 'miniStack',
-    config: miniStackConfig,
-};
-
-const standardConfig: LayoutConfig = {
+const standard: LayoutConfig = {
     root: {
         type: "row",
         content: [
@@ -185,12 +170,7 @@ const standardConfig: LayoutConfig = {
     },
 };
 
-const standardLayout: Layout = {
-    name: 'standard',
-    config: standardConfig,
-};
-
-const responsiveConfig: LayoutConfig = {
+const responsive: LayoutConfig = {
     settings: {
         responsiveMode: "always",
     },
@@ -286,12 +266,7 @@ const responsiveConfig: LayoutConfig = {
     },
 };
 
-const responsiveLayout: Layout = {
-    name: 'responsive',
-    config: responsiveConfig,
-};
-
-const tabDropdownConfig: LayoutConfig = {
+const tabDropdown: LayoutConfig = {
     settings: {
         tabOverlapAllowance: 25,
         reorderOnTabMenuClick: false,
@@ -419,10 +394,8 @@ const tabDropdownConfig: LayoutConfig = {
     },
 };
 
-const tabDropdownLayout: Layout = {
-    name: 'tabDropdown',
-    config: tabDropdownConfig,
-};
-
-export const predefinedLayouts: readonly Layout[] = [miniRowLayout, miniStackLayout, responsiveLayout, standardLayout, tabDropdownLayout];
-export const predefinedLayoutNames: readonly string[] = predefinedLayouts.map((layout) => layout.name);
+export const predefinedLayouts: {[key: string]: LayoutConfig} = {
+    miniRow, miniStack, responsive, standard, tabDropdown
+}
+// export const predefinedLayouts: readonly Layout[] = [miniRowLayout, miniStackLayout, responsiveLayout, standardLayout, tabDropdownLayout];
+// export const predefinedLayoutNames: readonly string[] = predefinedLayouts.map((layout) => layout.name);

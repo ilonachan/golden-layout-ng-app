@@ -1,12 +1,13 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppComponent } from './app.component';
-import { BooleanComponent } from './boolean.component';
-import { ColorComponent } from './color.component';
+import { BooleanComponent } from './tabs/boolean.component';
+import { ColorComponent } from './tabs/color.component';
 import { ControlsComponent } from './controls.component';
-import { GoldenLayoutComponentService } from './golden-layout-component.service';
+import { GL_COMPONENTS, GoldenLayoutComponentService } from './golden-layout-component.service';
 import { GoldenLayoutHostComponent } from './golden-layout-host.component';
-import { TextComponent } from './text.component';
+import { TextComponent } from './tabs/text.component';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -19,9 +20,13 @@ import { TextComponent } from './text.component';
     BooleanComponent,
   ],
   imports: [
-    BrowserModule
+    BrowserModule, FormsModule
   ],
-  providers: [GoldenLayoutComponentService],
+  providers: [GoldenLayoutComponentService, { provide: GL_COMPONENTS, useValue: {
+    [ColorComponent.componentTypeName]: ColorComponent,
+    [TextComponent.componentTypeName]: TextComponent,
+    [BooleanComponent.componentTypeName]: BooleanComponent
+  }}],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

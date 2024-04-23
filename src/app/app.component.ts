@@ -1,11 +1,11 @@
-import { AfterViewInit, Component, ViewChild } from '@angular/core';
-import { ControlsComponent } from './controls.component';
+import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { GoldenLayoutHostComponent } from './golden-layout-host.component';
+import { predefinedLayouts } from './predefined-layouts';
 
 @Component({
   selector: 'app-root',
   template: `
-      <app-controls #controls></app-controls>
+      <app-controls [glHost]="goldenLayoutHost"  *ngIf="!this.isSubWindow"></app-controls>
       <app-golden-layout-host #goldenLayoutHost></app-golden-layout-host>   
   `,
   styles: [
@@ -22,21 +22,14 @@ import { GoldenLayoutHostComponent } from './golden-layout-host.component';
 export class AppComponent implements AfterViewInit {
   title = 'golden-layout-ng-app';
 
-  private _controlsElement: HTMLElement;
+  protected isSubWindow: boolean = false;
 
-  @ViewChild('controls') private _controlsComponent: ControlsComponent; 
-  @ViewChild('goldenLayoutHost') private _goldenLayoutHostComponent: GoldenLayoutHostComponent; 
+  @ViewChild('goldenLayoutHost') private _goldenLayoutHostComponent: GoldenLayoutHostComponent;
 
   ngAfterViewInit() {
-    setTimeout(() => {
-      this._controlsElement = this._controlsComponent.element;
-
-      this._goldenLayoutHostComponent.initialise();
-      this._controlsComponent.initialise(this._goldenLayoutHostComponent);
-  
-      if (this._goldenLayoutHostComponent.isGoldenLayoutSubWindow) {
-        this._controlsElement.style.display = 'none';
-      }
-    }, 0);
+    this._goldenLayoutHostComponent.initialised.subscribe(() => {
+      this._goldenLayoutHostComponent.goldenLayout.loadLayout(predefinedLayouts['responsive']);
+      this.isSubWindow = this._goldenLayoutHostComponent.isGoldenLayoutSubWindow
+    })
   }
 }

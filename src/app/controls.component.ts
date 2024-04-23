@@ -1,57 +1,76 @@
-import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
 import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+  ViewChild,
+} from "@angular/core";
+import {
+  ComponentItemConfig,
   DragSource,
   GoldenLayout,
   LayoutConfig,
-  ResolvedLayoutConfig
+  ResolvedLayoutConfig,
 } from "golden-layout";
-import { ColorComponent } from "./color.component";
-import { GoldenLayoutComponentService } from './golden-layout-component.service';
-import { GoldenLayoutHostComponent } from './golden-layout-host.component';
-import { predefinedLayoutNames, predefinedLayouts } from './predefined-layouts';
-import { TextComponent } from './text.component';
+import { ColorComponent } from "./tabs/color.component";
+import { GoldenLayoutComponentService } from "./golden-layout-component.service";
+import { GoldenLayoutHostComponent } from "./golden-layout-host.component";
+import { predefinedLayouts } from "./predefined-layouts";
+import { TextComponent } from "./tabs/text.component";
 
 @Component({
-  selector: 'app-controls',
+  selector: "app-controls",
   template: `
     <section id="virtualOrEmbeddedSection">
       <section id="embeddedSection">
         <section id="embeddedRadioSection">
-          <input #embeddedRadio
+          <input
             id="embeddedRadio"
             type="radio"
             name="virtualOrEmbedded"
-            (click)="handleEmbeddedRadioClick()"
+            [(ngModel)]="useVirtual"
+            [value]="false"
+            (change)="handleVirtualRadioClick()"
           />
           <label for="embeddedRadio">Embedded</label>
         </section>
       </section>
       <section id="virtualSection">
         <section id="virtualRadioSection">
-          <input #virtualRadio
+          <input
             id="virtualRadio"
             type="radio"
             name="virtualOrEmbedded"
-            (click)="handleVirtualRadioClick()"
+            [(ngModel)]="useVirtual"
+            [value]="true"
+            (change)="handleVirtualRadioClick()"
           />
           <label for="virtualRadio">Virtual</label>
         </section>
         <section id="viewComponentRefOrAppRefSection">
           <section id="viewComponentRefRadioSection">
-            <input #viewComponentRefRadio
+            <input
               id="viewComponentRefRadio"
               type="radio"
               name="viewComponentRefOrAppRef"
-              (click)="handleViewComponentRefRadioClick()"
+              [(ngModel)]="useViewContainerRef"
+              [value]="true"
+              [disabled]="!useVirtual"
+              (change)="handleAppRefRadioClick()"
             />
             <label for="viewComponentRefRadio">View Comp Ref</label>
           </section>
           <section id="appRefRadioSection">
-            <input #appRefRadio
+            <input
               id="appRefRadio"
               type="radio"
               name="viewComponentRefOrAppRef"
-              (click)="handleAppRefRadioClick()"
+              [(ngModel)]="useViewContainerRef"
+              [value]="false"
+              [disabled]="!useVirtual"
+              (change)="handleAppRefRadioClick()"
             />
             <label for="appRefRadio">App Ref</label>
           </section>
@@ -59,118 +78,165 @@ import { TextComponent } from './text.component';
       </section>
     </section>
     <section id="addComponentSection">
-      <select #registeredComponentTypeSelect
+      <select
         id="registeredComponentTypeSelect"
         class="control"
         [value]="initialRegisteredComponentTypeName"
-        (change)="handleRegisteredComponentTypeSelectChange(registeredComponentTypeSelect.value)"
+        [(ngModel)]="_selectedRegisteredComponentTypeName"
       >
-        <option *ngFor="let name of registeredComponentTypeNames">{{name}}</option>
+        <option *ngFor="let name of registeredComponentTypeNames">
+          {{ name }}
+        </option>
       </select>
-      <button #addComponentButton id="addComponentButton" class="control" (click)="handleAddComponentButtonClick()">Add Component</button>
+      <button
+        id="addComponentButton"
+        class="control"
+        (click)="handleAddComponentButtonClick()"
+      >
+        Add Component
+      </button>
     </section>
     <section id="addTextComponentSection">
-      <input #componentTextInput id="componentTextInput"
+      <input
+        id="componentTextInput"
         class="control"
         size="8"
         [value]="initialComponentTextValue"
-        (input)="handleComponentTextInputInput(componentTextInput.value)"
+        [(ngModel)]="_componentTextValue"
       />
-      <button #addTextComponentButton
+      <button
         id="addTextComponentButton"
         class="control"
         (click)="handleAddTextComponentButtonClick()"
-      >Add Text Component</button>
+      >
+        Add Text Component
+      </button>
     </section>
     <section id="predefinedLayoutsSection">
-      <select #layoutSelect
+      <select
         id="layoutSelect"
         class="control"
         [value]="initialLayoutName"
-        (change)="handleLayoutSelectChange(layoutSelect.value)"
+        [(ngModel)]="_selectedLayoutName"
       >
-        <option *ngFor="let name of layoutNames">{{name}}</option>
+        <option *ngFor="let name of layoutNames">{{ name }}</option>
       </select>
-      <button #loadLayoutButton id="loadLayoutButton" class="control" (click)="handleLoadLayoutButtonClick()">Load Layout</button>
+      <button
+        id="loadLayoutButton"
+        class="control"
+        (click)="handleLoadLayoutButtonClick()"
+      >
+        Load Layout
+      </button>
     </section>
     <section id="saveAndReloadLayoutSection">
-      <button #saveLayoutButton id="saveLayoutButton" class="control" (click)="handleSaveLayoutButtonClick()">Save Layout</button>
-      <button #reloadSavedLayoutButton 
+      <button
+        id="saveLayoutButton"
+        class="control"
+        (click)="handleSaveLayoutButtonClick()"
+      >
+        Save Layout
+      </button>
+      <button
         id="reloadSavedLayoutButton"
         class="control"
         [disabled]="saveLayoutButtonDisabled === true ? true : null"
         (click)="handleReloadSavedLayoutClick()"
-      >Reload saved Layout</button>
+      >
+        Reload saved Layout
+      </button>
     </section>
     <section id="dragSection">
       <button class="draggable control" #dragMe>Drag me !</button>
     </section>
+    <hr />
+    <p>
+      There shouldn't be any restrictions on what components can be placed in
+      the GoldenLayout, and obviously you can also use those same components
+      outside (if you tell them how to handle the absence of the
+      <code>ComponentContainer</code>).
+    </p>
+    <app-color-component title="<used outside of tab>" color="yellow" />
+    <hr />
   `,
-  styles: [`
-    :host {
-      display: flex;
-      flex-direction: column;
-      white-space: nowrap;
-    }
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        white-space: nowrap;
+        width: 25%;
+      }
 
-    .control {
-      margin: 2px;
-    }
+      app-color-component {
+        border: 1px solid black;
+        background-color: #222;
+        padding: 5px;
+        margin: 5px;
+      }
 
-    .draggable {
-      cursor: move;
-    }
+      p {
+        white-space: break-spaces;
+      }
 
-    #viewComponentRefOrAppRefSection {
-      display: flex;
-      margin-left: 1em;
-    }
+      .control {
+        margin: 2px;
+      }
 
-    #addComponentSection {
-      display: flex;
-      flex-direction: row;
-    }
+      .draggable {
+        cursor: move;
+      }
 
-    #addTextComponentSection {
-      display: flex;
-      flex-direction: row;
-    }
+      #viewComponentRefOrAppRefSection {
+        display: flex;
+        margin-left: 1em;
+      }
 
-    #predefinedLayoutsSection {
-      display: flex;
-      flex-direction: row;
-    }
+      #addComponentSection {
+        display: flex;
+        flex-direction: row;
+      }
 
-    #saveAndReloadLayoutSection {
-      display: flex;
-      flex-direction: row;
-    } 
+      #addTextComponentSection {
+        display: flex;
+        flex-direction: row;
+      }
 
-    #dragSection {
-      display: flex;
-      flex-direction: column;
-    }
-  `
-  ]
+      #predefinedLayoutsSection {
+        display: flex;
+        flex-direction: row;
+      }
+
+      #saveAndReloadLayoutSection {
+        display: flex;
+        flex-direction: row;
+      }
+
+      #dragSection {
+        display: flex;
+        flex-direction: column;
+      }
+    `,
+  ],
 })
 export class ControlsComponent implements OnDestroy {
-  private _goldenLayoutHostComponent: GoldenLayoutHostComponent
+  @Input("glHost") public _goldenLayoutHostComponent: GoldenLayoutHostComponent;
+
   private _goldenLayout: GoldenLayout;
   private _savedLayout: ResolvedLayoutConfig | undefined;
 
-  private _selectedRegisteredComponentTypeName: string;
-  private _componentTextValue: string;
-  private _selectedLayoutName: string;
+  protected useVirtual: boolean;
+  protected useViewContainerRef: boolean;
+  protected _selectedRegisteredComponentTypeName: string;
+  protected _componentTextValue: string;
+  protected _selectedLayoutName: string;
   private _dragSources: Array<DragSource | undefined> = [];
 
-  @ViewChild('dragMe') private _dragMeElementRef: ElementRef;
-  @ViewChild('virtualRadio') private _virtualRadioElementRef: ElementRef<HTMLInputElement>;
-  @ViewChild('viewComponentRefRadio') private _viewComponentRefRadioElementRef: ElementRef<HTMLInputElement>;
-  @ViewChild('appRefRadio') private _appRefRadioElementRef: ElementRef<HTMLInputElement>;
+  @ViewChild("dragMe") private _dragMeElementRef: ElementRef;
 
   public registeredComponentTypeNames: readonly string[];
   public initialRegisteredComponentTypeName: string;
-  public initialComponentTextValue = 'Water';
+  public initialComponentTextValue = "Water";
   public layoutNames: readonly string[];
   public initialLayoutName: string;
   public saveLayoutButtonDisabled = true;
@@ -179,9 +245,15 @@ export class ControlsComponent implements OnDestroy {
     return this._elRef.nativeElement;
   }
 
-  constructor(private _elRef: ElementRef<HTMLElement>,
-              private _goldenLayoutComponentService: GoldenLayoutComponentService
-  ) {
+  constructor(
+    private _elRef: ElementRef<HTMLElement>,
+    private _goldenLayoutComponentService: GoldenLayoutComponentService
+  ) {}
+
+  ngOnInit() {
+    this._goldenLayoutHostComponent.initialised.subscribe(() => {
+      this.initialise();
+    });
   }
 
   ngOnDestroy() {
@@ -192,47 +264,44 @@ export class ControlsComponent implements OnDestroy {
     }
   }
 
-  initialise(value: GoldenLayoutHostComponent) {
-    this._goldenLayoutHostComponent = value;
+  initialise() {
     this._goldenLayout = this._goldenLayoutHostComponent.goldenLayout;
 
-    this._virtualRadioElementRef.nativeElement.checked = this._goldenLayoutHostComponent.virtualActive;
-    this.updateViewComponentRefRadio();
-    this.registeredComponentTypeNames = this._goldenLayoutComponentService.getRegisteredComponentTypeNames();
-    this._selectedRegisteredComponentTypeName = this.registeredComponentTypeNames[0]
-    this.initialRegisteredComponentTypeName = this._selectedRegisteredComponentTypeName;
+    this.useVirtual = this._goldenLayoutHostComponent.virtualActive;
+    this.useViewContainerRef =
+      this._goldenLayoutHostComponent.viewContainerRefActive;
+
+    this.registeredComponentTypeNames = Array.from(
+      this._goldenLayoutComponentService.componentTypes.keys()
+    );
+    this._selectedRegisteredComponentTypeName =
+      this.registeredComponentTypeNames[0];
+    this.initialRegisteredComponentTypeName =
+      this._selectedRegisteredComponentTypeName;
     this._componentTextValue = this.initialComponentTextValue;
-    this.layoutNames = predefinedLayoutNames;
-    this._selectedLayoutName = this.layoutNames[0]
+    this.layoutNames = Object.keys(predefinedLayouts);
+    this._selectedLayoutName = this.layoutNames[0];
     this.initialLayoutName = this._selectedLayoutName;
 
     this.initialiseDragSources();
   }
 
-  handleEmbeddedRadioClick() {
-    this._goldenLayoutHostComponent.setVirtualActive(this._virtualRadioElementRef.nativeElement.checked);
-    this.updateViewComponentRefRadio();
-  }
-
   handleVirtualRadioClick() {
-    this._goldenLayoutHostComponent.setVirtualActive(this._virtualRadioElementRef.nativeElement.checked);
-    this.updateViewComponentRefRadio();
-  }
+    this._goldenLayoutHostComponent.setVirtualActive(this.useVirtual);
 
-  handleViewComponentRefRadioClick() {
-    this._goldenLayoutHostComponent.setViewContainerRefActive(this._viewComponentRefRadioElementRef.nativeElement.checked);
+    this.useViewContainerRef =
+      this._goldenLayoutHostComponent.viewContainerRefActive;
+    this.useVirtual = this._goldenLayoutHostComponent.virtualActive;
   }
 
   handleAppRefRadioClick() {
-    this._goldenLayoutHostComponent.setViewContainerRefActive(this._viewComponentRefRadioElementRef.nativeElement.checked);
+    this._goldenLayoutHostComponent.setViewContainerRefActive(
+      this.useViewContainerRef
+    );
   }
 
   handleRegisteredComponentTypeSelectChange(value: string) {
     this._selectedRegisteredComponentTypeName = value;
-  }
-
-  handleComponentTextInputInput(value: string) {
-    this._componentTextValue = value;
   }
 
   handleAddComponentButtonClick() {
@@ -242,27 +311,27 @@ export class ControlsComponent implements OnDestroy {
 
   handleAddTextComponentButtonClick() {
     // this demonstrates how to access created Angular component
-    const goldenLayoutComponent = this._goldenLayout.newComponent(TextComponent.componentTypeName); // do not set state here
-    const componentRef = this._goldenLayoutHostComponent.getComponentRef(goldenLayoutComponent.container);
+    const goldenLayoutComponent = this._goldenLayout.newComponent(
+      TextComponent.componentTypeName
+    ); // do not set state here
+    const componentRef = this._goldenLayoutHostComponent.getComponentRef(
+      goldenLayoutComponent.container
+    );
     if (componentRef === undefined) {
-      throw new Error('Unexpected error getting ComponentRef');
-    } else {
-      const textComponent = componentRef.instance as TextComponent;
-      textComponent.setInitialValue(this._componentTextValue);
+      throw new Error("Unexpected error getting ComponentRef");
     }
-  }
 
-  handleLayoutSelectChange(value: string) {
-    this._selectedLayoutName = value;
+    const textComponent = componentRef.instance as TextComponent;
+    textComponent.setInitialValue(this._componentTextValue);
   }
 
   handleLoadLayoutButtonClick() {
-    const selectedLayout = predefinedLayouts.find((layout) => layout.name === this._selectedLayoutName);
+    const selectedLayout = predefinedLayouts[this._selectedLayoutName];
     if (selectedLayout === undefined) {
-      throw new Error('handleLoadLayoutButtonClick Error');
-    } else {
-      this._goldenLayout.loadLayout(selectedLayout.config);
+      throw new Error("handleLoadLayoutButtonClick Error");
     }
+
+    this._goldenLayout.loadLayout(selectedLayout);
   }
 
   handleSaveLayoutButtonClick() {
@@ -272,7 +341,7 @@ export class ControlsComponent implements OnDestroy {
 
   handleReloadSavedLayoutClick() {
     if (this._savedLayout === undefined) {
-      throw new Error('No saved layout');
+      throw new Error("No saved layout");
     } else {
       const layoutConfig = LayoutConfig.fromResolved(this._savedLayout);
       this._goldenLayout.loadLayout(layoutConfig);
@@ -280,31 +349,27 @@ export class ControlsComponent implements OnDestroy {
   }
 
   private initialiseDragSources() {
-    this.loadDragSource('Drag me !', ColorComponent.componentTypeName, this._dragMeElementRef);
+    this.loadDragSource(
+      {
+        type: "component",
+        title: "Drag me !",
+        componentState: {color: "yellow"},
+        componentType: ColorComponent.componentTypeName,
+      },
+      this._dragMeElementRef
+    );
   }
 
-  private loadDragSource(title: string, componentName: string, element: ElementRef | undefined): void {
+  private loadDragSource(
+    item: ComponentItemConfig,
+    element: ElementRef | undefined
+  ): void {
     if (!this._goldenLayout) {
       return;
     }
 
-    const config = () => {
-      const item: DragSource.ComponentItemConfig = {
-        state: undefined,
-        title,
-        type: componentName,
-      };
-      return item;
-    };
-    this._dragSources.push(this._goldenLayout.newDragSource(element?.nativeElement, config));
-  }
-
-  private updateViewComponentRefRadio() {
-    const viewComponentRefActive = this._goldenLayoutHostComponent.viewContainerRefActive;
-    this._viewComponentRefRadioElementRef.nativeElement.checked = viewComponentRefActive;
-    this._appRefRadioElementRef.nativeElement.checked = !viewComponentRefActive;
-    const virtualActive = this._goldenLayoutHostComponent.virtualActive;
-    this._viewComponentRefRadioElementRef.nativeElement.disabled = !virtualActive;
-    this._appRefRadioElementRef.nativeElement.disabled = !virtualActive;
+    this._dragSources.push(
+      this._goldenLayout.newDragSource(element?.nativeElement, () => item)
+    );
   }
 }

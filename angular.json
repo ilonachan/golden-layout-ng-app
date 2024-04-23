@@ -101,21 +101,20 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "golden-layout-ng-app:build"
+            "buildTarget": "golden-layout-ng-app:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "golden-layout-ng-app:build:production"
+              "buildTarget": "golden-layout-ng-app:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "golden-layout-ng-app:build"
+            "buildTarget": "golden-layout-ng-app:build"
           }
         }
       }
-    }},
-  "defaultProject": "golden-layout-ng-app"
+    }}
 }

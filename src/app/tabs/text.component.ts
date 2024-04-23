@@ -1,30 +1,24 @@
-import { Component, ElementRef, Inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { ComponentContainer, JsonValue } from 'golden-layout';
-import { BaseComponentDirective } from './base-component.directive';
 
 @Component({
   selector: 'app-text-component',
   template: `
-    <input #input id="input" type="text" [value]="initialValue" (input)="updateValue(input.value)">
+    <input #input id="input" type="text" [value]="initialValue" [(ngModel)]="_value">
   `,
   styles: [`
-    :host {
-      position: absolute;
-      overflow: hidden;
-    }
-
     #input {
       display: block;
     }
   `]
 })
-export class TextComponent extends BaseComponentDirective {
-  private _value: string;
+export class TextComponent {
+  public static readonly componentTypeName = 'Text';
+
+  protected _value: string;
   public initialValue: string;
 
-  constructor(@Inject(BaseComponentDirective.GoldenLayoutContainerInjectionToken) private container: ComponentContainer, elRef: ElementRef) {
-    super(elRef.nativeElement);
-
+  constructor(private container: ComponentContainer) {
     this.container.stateRequestEvent = () => this.handleContainerStateRequestEvent();
 
     const state = this.container.initialState;
@@ -48,10 +42,6 @@ export class TextComponent extends BaseComponentDirective {
     this._value = value;
   }
 
-  updateValue(value: string) {
-    this._value = value;
-  }
-
   handleContainerStateRequestEvent(): TextComponent.State | undefined {
     if (this._value === TextComponent.undefinedTextValue) {
       return undefined;
@@ -64,7 +54,6 @@ export class TextComponent extends BaseComponentDirective {
 }
 
 export namespace TextComponent {
-  export const componentTypeName = 'Text';
   export const undefinedTextValue = '<undefined>';
 
   type TextPropertyName = 'text';
